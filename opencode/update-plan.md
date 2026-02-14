@@ -1,0 +1,79 @@
+---
+description: Update an existing plan with progress, always including a continuation prompt
+---
+
+<command-instruction>
+BEFORE ANYTHING ELSE, INFERN THE ISSUE NUMBER OR ASK THE USER FOR AN ISSUE NUMBER. THEN USE THAT ISSUE NUMBER FOR THE REMAINING WORK. DO NOT PROCEED WITHOUT AN ISSUE NUMBER.
+
+Update an existing plan with progress. Always includes a continuation prompt.
+
+## Procedure
+
+1. **Verify correct branch**
+
+   After getting the issue number, verify the current branch is associated with that issue:
+
+   ```bash
+   CURRENT_BRANCH=$(git branch --show-current)
+   ISSUE_NUM=<issue-number>
+
+   # Check if branch name contains issue number (e.g., feat/issue-42-description or fix/issue-42-description)
+   if [[ ! "$CURRENT_BRANCH" =~ issue-${ISSUE_NUM} ]]; then
+     echo "WARNING: Current branch ($CURRENT_BRANCH) does not appear to be for issue #$ISSUE_NUM"
+   fi
+   ```
+
+   - If branch doesn't match the issue, **STOP** and ask user:
+     - "You're on `<current-branch>` but updating issue #X. Expected a branch like `feat/issue-X-*` or `fix/issue-X-*`. Continue anyway? (YES / NO)"
+     - If NO: List branches that might match the issue and offer to switch
+     - If YES: Proceed with caution
+
+2. **Fetch current state** - `gh issue view <issue-number>`
+2. **Summarize progress** - What was completed, what changed, any blockers
+3. **Post update comment** with this format:
+
+   ```markdown
+   ## Progress Update - <date>
+
+   ### Completed
+   - [x] Task 1
+   - [x] Task 2
+
+   ### In Progress
+   - [ ] Task 3 (current state: ...)
+
+   ### Blockers / Changes
+   - <any issues or scope changes>
+
+   ### Modified Files
+   - `path/to/file.rs` - <what changed>
+
+   ---
+
+   ## Workon Prompt
+
+   > **Start here:** <specific next action to take>
+   >
+   > **Key files:** `path/to/modified/file1.rs`, `path/to/modified/file2.rs`
+   >
+   > **Context:** <current state and what's been done>
+   ```
+
+4. **Update labels** - Add/remove `in-progress` as appropriate
+5. **Update checkboxes** - Edit issue body if tasks completed: `gh issue edit <number> --body-file`
+</command-instruction>
+
+<current-context>
+<in-progress-issues>
+!`gh issue list --label "in-progress" --json number,title --jq '.[] | "- #\(.number) \(.title)"' 2>/dev/null || echo "none"`
+</in-progress-issues>
+<current-branch>
+!`git branch --show-current`
+</current-branch>
+<recent-commits>
+!`git log --oneline -5`
+</recent-commits>
+<modified-files>
+!`git diff --name-only HEAD~5 2>/dev/null | head -10 || echo "no recent changes"`
+</modified-files>
+</current-context>
