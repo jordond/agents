@@ -62,11 +62,21 @@ fi
    )")
    echo "Created PR: $PR_URL"
    ```
-5. **Request Copilot review** (if extension installed):
+5. **Remove in-progress label**
    ```bash
-   gh copilot-review "$PR_URL"
+   gh issue edit <issue-number> --remove-label "in-progress" 2>/dev/null || true
    ```
-6. **Post final update** - Comment on the issue with PR link and summary
+6. **Request Copilot review** (if extension installed, ignore if command not found):
+   ```bash
+   gh copilot-review "$PR_URL" 2>/dev/null || true
+   ```
+7. **Post final update** - Comment on the issue with PR link and summary
+
+## Notes
+
+- `Fixes #<number>` in the PR body auto-closes the issue only when merged into the repository's default branch
+- If your workflow merges to a non-default branch, close the issue manually after merge
+- After review, use `/pr-feedback` to address reviewer comments
 </command-instruction>
 
 <current-context>

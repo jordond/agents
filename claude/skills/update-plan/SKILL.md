@@ -5,7 +5,7 @@ argument-hint: [issue-number]
 disable-model-invocation: true
 ---
 
-BEFORE ANYTHING ELSE, INFER THE ISSUE NUMBER OR ASK THE USER FOR AN ISSUE NUMBER. THEN USE THAT ISSUE NUMBER FOR THE REMAINING WORK. DO NOT PROCEED WITHOUT AN ISSUE NUMBER.
+BEFORE ANYTHING ELSE, CHECK IF THE USER PROVIDED AN ISSUE NUMBER AS AN ARGUMENT (`$ARGUMENTS`). IF THEY DID, USE THAT. OTHERWISE, INFER THE ISSUE NUMBER OR ASK THE USER. DO NOT PROCEED WITHOUT AN ISSUE NUMBER.
 
 Update an existing plan with progress. Always includes a continuation prompt.
 
@@ -62,7 +62,11 @@ Update an existing plan with progress. Always includes a continuation prompt.
    ```
 
 5. **Update labels** - Add/remove `in-progress` as appropriate
-6. **Update checkboxes** - Edit issue body if tasks completed: `gh issue edit <number> --body-file`
+6. **Update checkboxes** - If tasks are completed, update the issue body:
+   - Fetch the current body: `gh issue view <number> --json body --jq '.body' > /tmp/issue-body.md`
+   - Edit the markdown to check off completed items (change `- [ ]` to `- [x]`)
+   - Update: `gh issue edit <number> --body-file /tmp/issue-body.md`
+   - Clean up: `rm /tmp/issue-body.md`
 
 ## Current Context
 

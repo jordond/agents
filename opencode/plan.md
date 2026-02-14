@@ -3,20 +3,22 @@ description: Create a plan for a feature or task, producing a GitHub issue as so
 ---
 
 <command-instruction>
-BEFORE ANYTHING ELSE, ASK THE USER FOR A DETAILED DESCRIPTION OF WHAT THEY WANT. DO NOT PROCEED UNLESS YOU HAVE THE DESCRIPTION!
+BEFORE ANYTHING ELSE, CHECK IF THE USER PROVIDED A DESCRIPTION AS AN ARGUMENT. IF THEY DID, USE THAT. IF NOT, ASK THE USER FOR A DETAILED DESCRIPTION OF WHAT THEY WANT. DO NOT PROCEED UNLESS YOU HAVE THE DESCRIPTION!
 
 Create a plan for a feature or task. Produces a GitHub issue as the source of truth.
 
 ## Procedure
 
 1. **Research** - Explore codebase to understand scope and constraints
-2. **Draft** - Create `./scratchpad/plan-<slug>.md` with the template below
+2. **Draft** - Create `./scratchpad/plan-<slug>.md` with the template below (create the `scratchpad` directory if it doesn't exist: `mkdir -p ./scratchpad`)
 3. **Review** - Present draft to user for feedback
 4. **Finalize** - Once approved, create GitHub issue:
    ```bash
+   # Ensure label exists
+   gh label create "feature" --description "Feature request" --color "0E8A16" 2>/dev/null || true
    gh issue create --title "<title>" --body-file ./scratchpad/plan-<slug>.md --label "feature"
    ```
-5. **Cleanup** - Delete scratchpad file after issue is created
+5. **Cleanup** - Verify the issue was created successfully (`gh issue view <number>`), then delete the scratchpad file
 
 ## Issue Template
 
@@ -71,6 +73,6 @@ The scratchpad file MUST follow this format to work with `/workon`:
 !`ls -1 ./scratchpad/plan-*.md 2>/dev/null || echo "no drafts"`
 </scratchpad-plans>
 <project-structure>
-!`ls -1 src/`
+!`ls -1 -d */ 2>/dev/null | head -15 || echo "empty directory"`
 </project-structure>
 </current-context>

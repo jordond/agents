@@ -60,7 +60,11 @@ Update an existing plan with progress. Always includes a continuation prompt.
    ```
 
 4. **Update labels** - Add/remove `in-progress` as appropriate
-5. **Update checkboxes** - Edit issue body if tasks completed: `gh issue edit <number> --body-file`
+5. **Update checkboxes** - If tasks are completed, update the issue body:
+   - Fetch the current body: `gh issue view <number> --json body --jq '.body' > /tmp/issue-body.md`
+   - Edit the markdown to check off completed items (change `- [ ]` to `- [x]`)
+   - Update: `gh issue edit <number> --body-file /tmp/issue-body.md`
+   - Clean up: `rm /tmp/issue-body.md`
 </command-instruction>
 
 <current-context>

@@ -33,13 +33,17 @@ Address PR review comments one by one with user confirmation.
      - If YES: `git checkout <pr-branch>`
      - If NO: Abort and explain they need to be on the correct branch
 
-2. **Fetch PR review comments**
+2. **Fetch PR review comments and review summaries**
 
    ```bash
+   # Inline review comments
    gh api repos/:owner/:repo/pulls/<pr-number>/comments --paginate | jq -r '.[] | "---\n## Comment \(.id)\n**File:** \(.path):\(.line)\n**Suggestion:**\n\(.body)\n"'
+
+   # Review summaries (top-level review bodies with actionable feedback)
+   gh api repos/:owner/:repo/pulls/<pr-number>/reviews --paginate | jq -r '.[] | select(.body != "" and .body != null) | "---\n## Review by \(.user.login) [\(.state)]\n\(.body)\n"'
    ```
 
-2. **Present summary table**
+3. **Present summary table**
 
    - Show all comments in a numbered table with:
      - File and line number
@@ -72,20 +76,21 @@ Address PR review comments one by one with user confirmation.
 
 5. **Skip verification during fixes**
 
-   - Do NOT run `cargo check`, `clippy`, or `lsp_diagnostics` after each fix
+   - Do NOT run build checks, linters, or diagnostics after each fix
    - This speeds up the feedback loop
    - All verification happens at the end
 
 6. **Final verification (after all comments processed)**
 
-   ```bash
-   cargo fmt --all --check
-   cargo clippy --all-targets --all-features -- -D warnings
-   cargo build
-   cargo test
-   ```
+   Detect the project's build system and run the appropriate checks:
 
-   - If any check fails, report and offer to fix
+   - **Rust**: `cargo fmt --all --check && cargo clippy --all-targets --all-features -- -D warnings && cargo build && cargo test`
+   - **Node/TypeScript**: `npm run lint && npm run build && npm test` (or equivalent pnpm/yarn/bun commands)
+   - **Python**: `ruff check . && python -m pytest`
+   - **Go**: `go vet ./... && go test ./...`
+   - **Other**: Use whatever build/lint/test commands are configured in the project
+
+   If any check fails, report and offer to fix
 
 7. **Commit and push**
 
@@ -101,9 +106,10 @@ Address PR review comments one by one with user confirmation.
      - <brief list of changes>
      ```
 
+   - Stage only the files that were modified to address review comments (do NOT use `git add -A`)
    - Commit and push:
      ```bash
-     git add -A
+     git add <specific-files>
      git commit -m "<message>"
      git push
      ```
@@ -115,6 +121,10 @@ Address PR review comments one by one with user confirmation.
    - **Resolve review threads** (for each fixed comment):
 
      ```bash
+     # Get owner and repo for GraphQL query
+     OWNER=$(gh repo view --json owner --jq '.owner.login')
+     REPO=$(gh repo view --json name --jq '.name')
+
      # Get the GraphQL node_id for the review thread
      gh api graphql -f query='
        query($owner: String!, $repo: String!, $pr: Int!) {
@@ -136,7 +146,7 @@ Address PR review comments one by one with user confirmation.
            }
          }
        }
-     ' -f owner=':owner' -f repo=':repo' -F pr=<pr-number>
+     ' -f owner="$OWNER" -f repo="$REPO" -F pr=<pr-number>
      ```
 
    - **Resolve each thread** (for fixed comments):
@@ -151,10 +161,10 @@ Address PR review comments one by one with user confirmation.
      ' -f threadId='<thread-node-id>'
      ```
 
-   - **If resolving fails** (e.g., not a review thread), delete the comment:
+   - **If resolving fails** (e.g., not a review thread), reply to acknowledge instead:
 
      ```bash
-     gh api -X DELETE repos/:owner/:repo/pulls/comments/<comment-id>
+     gh api repos/:owner/:repo/pulls/comments/<comment-id>/replies -f body="Addressed in latest push."
      ```
 
    - **Post summary comment** on the PR:
@@ -186,13 +196,7 @@ When presenting comments, classify by priority:
 
 ## Grouping Related Comments
 
-Identify and group related comments to offer batch fixes:
-
-| Group   | Trigger                              | Example           |
-| ------- | ------------------------------------ | ----------------- |
-| CHRONO  | Multiple `and_hms_opt` deprecations  | "YES ALL CHRONO"  |
-| TIMEOUT | Multiple timeout-related issues      | "YES ALL TIMEOUT" |
-| ERROR   | Multiple error handling improvements | "YES ALL ERROR"   |
+Identify and group related comments to offer batch fixes. Use a short keyword that describes the group (e.g., "YES ALL DEPS" for dependency-related fixes, "YES ALL ERROR" for error handling improvements).
 
 ## Example Session
 
@@ -287,7 +291,7 @@ If a comment appears incorrect or already resolved:
 - If verification fails, do NOT auto-commit - report and offer fixes first
 - The final push updates the PR automatically
 - After pushing, always resolve addressed comments and post a summary
-- If a comment cannot be resolved (not a review thread), delete it instead
+- If a comment cannot be resolved (not a review thread), reply to acknowledge it instead
 - The summary comment provides a clear audit trail of what was addressed
 </command-instruction>
 
