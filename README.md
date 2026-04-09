@@ -7,7 +7,7 @@ Shared commands for Claude Code and OpenCode that manage a GitHub issue-driven d
 Plan a feature as a GitHub issue, work on it, track progress, submit a PR, and address review feedback.
 
 ```text
-/plan -> /workon -> /update-plan -> /work-done -> /pr-feedback
+/plan -> /workon -> /update-plan -> /refine -> /work-done -> /pr-feedback
 ```
 
 ## Commands
@@ -19,6 +19,7 @@ Plan a feature as a GitHub issue, work on it, track progress, submit a PR, and a
 | `/update-plan` | Post a progress update comment on the issue and update checkboxes                | `[issue-number]`                 |
 | `/work-done`   | Create a PR that auto-closes the issue when merged                               | `[issue-number]`                 |
 | `/pr-feedback` | Walk through PR review comments one by one with confirmation                     | `[pr-number]`                    |
+| `/refine`      | Refine branch changes for code quality, reusability, type safety, and clean patterns before committing |                                  |
 
 ## Examples
 
@@ -37,6 +38,9 @@ Plan a feature as a GitHub issue, work on it, track progress, submit a PR, and a
 
 # Address review feedback on PR #15
 /pr-feedback 15
+
+# Refine changes before committing
+/refine
 ```
 
 ## Install
