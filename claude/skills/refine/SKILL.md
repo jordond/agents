@@ -36,7 +36,7 @@ Refine all uncommitted changes on the current branch for code quality, reusabili
    - Note the project's existing patterns for: naming, file organization, component structure, error handling, imports, exports, and module boundaries
    - Identify the language(s) and frameworks in use
 
-   All refinements MUST follow the patterns already present in the project. Do not introduce new conventions.
+   All refinements MUST follow the patterns already present in the project. Do not introduce new conventions. However, if the codebase contains known anti-patterns (region comments, useless comments that restate code, commented-out code, etc.), still remove them from the changed files — matching a bad pattern is not a reason to keep it.
 
 3. **Run `/simplify`**
 
@@ -124,7 +124,7 @@ Refine all uncommitted changes on the current branch for code quality, reusabili
 
 ## Principles
 
-- **Follow the project, not your preferences.** Every refinement must match existing patterns in the codebase.
+- **Follow the project, not your preferences.** Match existing conventions for naming, structure, and style. But don't preserve anti-patterns just because they exist elsewhere — remove region comments, dead code, and useless comments even if the rest of the codebase has them.
 - **Preserve behavior exactly.** This is a refine pass, not a feature change.
 - **Scope is the diff.** Only touch files that are part of the current changes. The one exception is extracting something to an existing shared file.
 - **Less is more.** A small, confident refinement is better than an ambitious restructuring.
