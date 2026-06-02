@@ -1,46 +1,36 @@
 # agents
 
-Shared commands for Claude Code and OpenCode that manage a GitHub issue-driven development workflow.
+Shared commands for Claude Code that run a GitHub issue-driven development workflow, coordinated through a single pinned **Status** issue that every agent reads and updates.
 
 ## Workflow
 
-Plan a feature as a GitHub issue, work on it, track progress, submit a PR, and address review feedback.
+A `Status` issue (one per repo) is the source of truth: a board with four tables — **TODO → Up Next → In Progress → Finished**. Capture ideas, plan them into issues, build them in worktrees, and the board stays in sync.
 
 ```text
-/plan -> /workon -> /update-plan -> /refine -> /work-done -> /pr-feedback
+/add-todo -> /ideate -> /workon
+        \-> /where-are-we (orient / reconcile anytime)
 ```
 
 ## Commands
 
-| Command        | Description                                                                      | Arguments                        |
-| -------------- | -------------------------------------------------------------------------------- | -------------------------------- |
-| `/plan-task`   | Research and create a GitHub issue with a structured plan                        | `[description]`                  |
-| `/workon`      | Start working on an issue: set up branch, mark in-progress, begin implementation | `[issue-number or search-query]` |
-| `/update-plan` | Post a progress update comment on the issue and update checkboxes                | `[issue-number]`                 |
-| `/work-done`   | Create a PR that auto-closes the issue when merged                               | `[issue-number]`                 |
-| `/pr-feedback` | Walk through PR review comments one by one with confirmation                     | `[pr-number]`                    |
-| `/refine`      | Refine branch changes for code quality, reusability, type safety, and clean patterns before committing |                                  |
+| Command          | Description                                                                                          | Arguments                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | -------------------------- |
+| `/where-are-we`  | Read the Status issue, reconcile it against git history, summarize, and suggest next steps           | `[focus area]`             |
+| `/add-todo`      | Condense an idea into a one-line task and append it to the Status board's TODO table                 | `[the thing to remember]`  |
+| `/ideate`        | Research a TODO/idea with evidence, ask steering questions, write the plan(s) via subagents, create issue(s), update the board | `[a TODO, issue, or idea]` |
+| `/workon`        | Implement a planned issue with subagents in an isolated worktree, update the board, finish via PR or merge | `[issue number]`           |
+| `/refine`        | Refine branch changes for code quality, reusability, type safety, and clean patterns before committing |                            |
+| `/pr-feedback`   | Walk through PR review comments one by one with confirmation                                         | `[pr-number]`              |
+
+Goals: autonomous work drivable from the Claude Code app, minimal token waste (terse output), and quality work free of AI anti-patterns.
 
 ## Examples
 
 ```bash
-# Plan a new feature
-/plan-task add user authentication with OAuth
-
-# Start working on issue #12
+/add-todo cache the forecast API responses, they're slow
+/ideate add user authentication with OAuth
 /workon 12
-
-# Update progress on current issue
-/update-plan
-
-# Create a PR when finished
-/work-done
-
-# Address review feedback on PR #15
-/pr-feedback 15
-
-# Refine changes before committing
-/refine
+/where-are-we
 ```
 
 ## Install
@@ -49,12 +39,7 @@ Plan a feature as a GitHub issue, work on it, track progress, submit a PR, and a
 ./install.sh # --yes
 ```
 
-This symlinks everything into the right places:
-
-- Claude skills to `~/.claude/skills/`
-- OpenCode commands to `~/.opencode/commands/`
-
-Re-running is safe. Existing symlinks are replaced. If a non-symlink file exists at the target, the script prompts before overwriting. Use `--yes` or `-y` to skip prompts.
+Symlinks Claude skills into `~/.claude/skills/` and OpenCode commands into `~/.opencode/commands/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts).
 
 ## Structure
 
