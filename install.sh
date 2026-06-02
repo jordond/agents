@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
-OPENCODE_COMMANDS_DIR="$HOME/.opencode/commands"
 
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -14,9 +13,14 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 AUTO_YES=false
-if [[ "${1:-}" == "--yes" || "${1:-}" == "-y" ]]; then
-  AUTO_YES=true
-fi
+REMOVE=false
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) AUTO_YES=true ;;
+    --rm|--remove) REMOVE=true ;;
+    *) echo "Unknown option: $arg" >&2; exit 1 ;;
+  esac
+done
 
 confirm_overwrite() {
   local target="$1"
@@ -53,37 +57,40 @@ install_claude_skills() {
   done
 }
 
-# Opencode commands (each command is a .md file)
-install_opencode_commands() {
-  mkdir -p "$OPENCODE_COMMANDS_DIR"
-
-  for cmd_file in "$SCRIPT_DIR"/opencode/*.md; do
-    [ -f "$cmd_file" ] || continue
-    cmd_name="$(basename "$cmd_file")"
-    target="$OPENCODE_COMMANDS_DIR/$cmd_name"
+# Remove skills this repo installed (symlinks pointing back into SCRIPT_DIR)
+uninstall_claude_skills() {
+  for skill_dir in "$SCRIPT_DIR"/claude/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name="$(basename "$skill_dir")"
+    target="$CLAUDE_SKILLS_DIR/$skill_name"
 
     if [ -L "$target" ]; then
-      rm "$target"
-    elif [ -e "$target" ]; then
-      if confirm_overwrite "$target"; then
-        rm -rf "$target"
-      else
-        echo -e "  ${YELLOW}SKIP${RESET} $cmd_name"
-        continue
-      fi
+      link_dest="$(readlink "$target")"
+      case "$link_dest" in
+        "$SCRIPT_DIR"/*)
+          rm "$target"
+          echo -e "  ${GREEN}RM${RESET}   $skill_name"
+          ;;
+        *)
+          echo -e "  ${YELLOW}SKIP${RESET} $skill_name ${DIM}(symlink points elsewhere)${RESET}"
+          ;;
+      esac
+    else
+      echo -e "  ${DIM}MISS $skill_name (not installed)${RESET}"
     fi
-
-    ln -s "$cmd_file" "$target"
-    echo -e "  ${GREEN}OK${RESET}   $cmd_name ${DIM}-> $cmd_file${RESET}"
   done
 }
 
+if $REMOVE; then
+  echo -e "${BOLD}${BLUE}Removing Claude skills${RESET} from $CLAUDE_SKILLS_DIR"
+  uninstall_claude_skills
+  echo ""
+  echo -e "${GREEN}Done.${RESET}"
+  exit 0
+fi
+
 echo -e "${BOLD}${BLUE}Claude skills${RESET} -> $CLAUDE_SKILLS_DIR"
 install_claude_skills
-
-echo ""
-echo -e "${BOLD}${BLUE}OpenCode commands${RESET} -> $OPENCODE_COMMANDS_DIR"
-install_opencode_commands
 
 echo ""
 echo -e "${GREEN}Done.${RESET}"

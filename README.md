@@ -20,7 +20,6 @@ A `Status` issue (one per repo) is the source of truth: a board with four tables
 | `/ideate`        | Research a TODO/idea with evidence, ask steering questions, write the plan(s) via subagents, create issue(s), update the board | `[a TODO, issue, or idea]` |
 | `/workon`        | Implement a planned issue with subagents in an isolated worktree, update the board, finish via PR or merge | `[issue number]`           |
 | `/refine`        | Refine branch changes for code quality, reusability, type safety, and clean patterns before committing |                            |
-| `/pr-feedback`   | Walk through PR review comments one by one with confirmation                                         | `[pr-number]`              |
 
 Goals: autonomous work drivable from the Claude Code app, minimal token waste (terse output), and quality work free of AI anti-patterns.
 
@@ -36,15 +35,15 @@ Goals: autonomous work drivable from the Claude Code app, minimal token waste (t
 ## Install
 
 ```bash
-./install.sh # --yes
+./install.sh           # install (--yes/-y skips overwrite prompts)
+./install.sh --rm      # uninstall (--remove also works)
 ```
 
-Symlinks Claude skills into `~/.claude/skills/` and OpenCode commands into `~/.opencode/commands/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts).
+Symlinks Claude skills into `~/.claude/skills/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo.
 
 ## Structure
 
 ```
 claude/skills/       # Claude Code skills (SKILL.md per directory)
-opencode/            # OpenCode commands (.md files)
-install.sh           # Symlink installer
+install.sh           # Symlink installer / uninstaller
 ```
