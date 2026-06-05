@@ -39,11 +39,16 @@ Goals: autonomous work drivable from the Claude Code app, minimal token waste (t
 ./install.sh --rm      # uninstall (--remove also works)
 ```
 
-Symlinks Claude skills into `~/.claude/skills/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo.
+Symlinks Claude skills into `~/.claude/skills/` and Codex prompts into `~/.codex/prompts/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo.
+
+## Codex
+
+The same six commands ship as [Codex CLI](https://github.com/openai/codex) prompts — single-agent rewrites of the Claude skills (no subagents/worktrees), invoked as `/where-are-we`, `/add-todo`, `/ideate`, `/workon`, `/refine`, `/deslopify` in Codex. They drive the identical `Status`-issue workflow over `gh` + `git`.
 
 ## Structure
 
 ```
 claude/skills/       # Claude Code skills (SKILL.md per directory)
+codex/prompts/       # Codex CLI prompts (one .md per /command)
 install.sh           # Symlink installer / uninstaller
 ```
