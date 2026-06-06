@@ -1,4 +1,9 @@
-# deslopify
+---
+name: deslopify
+description: Remove AI slop from code and docs — em-dashes, smart quotes, ChatGPT prose, useless comments, structural and markdown slop. Use when the user wants to deslopify, clean AI anti-patterns, strip robotic language, or de-AI changed files. Argument is a path, a scope description, or blank for uncommitted changes.
+---
+
+# Deslopify
 
 Clean AI anti-patterns ("slop") from code and documentation files.
 
@@ -8,7 +13,7 @@ Argument (`$ARGUMENTS`): a path, a description of scope, or blank for uncommitte
 
 BEFORE ANYTHING ELSE, resolve the file list from `$ARGUMENTS`:
 
-- **No arguments**: default to uncommitted changes. Run `git diff --name-only HEAD`. If empty, tell me there's nothing to deslopify and stop.
+- **No arguments**: default to uncommitted changes. Run `git diff --name-only HEAD`. If empty, tell the user there's nothing to deslopify and stop.
 - **A file or directory path**: use it directly. If a directory, recursively include all text files in it.
 - **A description** (e.g. "the doc files in docs/", "recent changes", "everything in src/components"): resolve to a concrete file list using `git diff`, glob, or directory listing.
 

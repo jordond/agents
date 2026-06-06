@@ -1,8 +1,13 @@
-# refine
+---
+name: refine
+description: Refine branch changes for code quality, reusability, type safety, and clean patterns before committing. A pre-commit quality pass that preserves behavior exactly. Use when the user wants to clean up, refine, tidy, or polish a diff before committing — "refine this", "clean up my changes", "quality pass before commit". Scope is the changed files only; it does not change behavior.
+---
+
+# Refine
 
 Refine branch changes for code quality, reusability, type safety, and clean patterns before committing. A pre-commit quality pass that preserves behavior exactly.
 
-BEFORE ANYTHING ELSE, verify there are changes to refine. Check `git status --porcelain` and `git log --oneline main..HEAD 2>/dev/null || git log --oneline master..HEAD 2>/dev/null`. If the working tree is clean AND there are no commits ahead of the base branch, tell me there's nothing to refine and stop.
+BEFORE ANYTHING ELSE, verify there are changes to refine. Check `git status --porcelain` and `git log --oneline main..HEAD 2>/dev/null || git log --oneline master..HEAD 2>/dev/null`. If the working tree is clean AND there are no commits ahead of the base branch, tell the user there's nothing to refine and stop.
 
 ## Procedure
 

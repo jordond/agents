@@ -39,16 +39,18 @@ Goals: autonomous work drivable from the Claude Code app, minimal token waste (t
 ./install.sh --rm      # uninstall (--remove also works)
 ```
 
-Symlinks Claude skills into `~/.claude/skills/` and Codex prompts into `~/.codex/prompts/`. Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo.
+Symlinks Claude skills into `~/.claude/skills/` and Codex skills into `~/.agents/skills/` (both follow symlinked skill folders). Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo. The installer also cleans up leftover installs from older versions of this script (`~/.codex/skills/` symlinks and `~/.codex/prompts/` files; see below).
 
 ## Codex
 
-The same six commands ship as [Codex CLI](https://github.com/openai/codex) prompts — single-agent rewrites of the Claude skills (no subagents/worktrees), invoked as `/where-are-we`, `/add-todo`, `/ideate`, `/workon`, `/refine`, `/deslopify` in Codex. They drive the identical `Status`-issue workflow over `gh` + `git`.
+The same six commands ship as [Codex CLI](https://github.com/openai/codex) skills — single-agent rewrites of the Claude skills (no subagents/worktrees) as `SKILL.md` folders, surfaced via `/skills` and invoked as `$where-are-we`, `$add-todo`, `$ideate`, `$workon`, `$refine`, `$deslopify` in Codex. They drive the identical `Status`-issue workflow over `gh` + `git`.
+
+> These shipped as `~/.codex/prompts/` files until Codex removed the custom-prompts feature in v0.118.0. Skills (`~/.agents/skills/<name>/SKILL.md`) are the supported replacement; Codex follows symlinked skill folders under User scope, so the same symlink install works.
 
 ## Structure
 
 ```
 claude/skills/       # Claude Code skills (SKILL.md per directory)
-codex/prompts/       # Codex CLI prompts (one .md per /command)
+codex/skills/        # Codex CLI skills (SKILL.md per directory)
 install.sh           # Symlink installer / uninstaller
 ```

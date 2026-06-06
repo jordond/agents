@@ -4,7 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
-CODEX_PROMPTS_DIR="$HOME/.codex/prompts"
+# Non-deprecated Codex user skills location (loader.rs registers $HOME/.agents/skills).
+CODEX_SKILLS_DIR="$HOME/.agents/skills"
+# Legacy targets cleaned up by older versions of this script:
+#   - $CODEX_HOME/skills: deprecated user skills dir (we briefly installed here)
+#   - $CODEX_HOME/prompts: dead custom-prompts feature (removed in Codex v0.118.0)
+CODEX_LEGACY_SKILLS_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
+CODEX_PROMPTS_DIR="${CODEX_HOME:-$HOME/.codex}/prompts"
 
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -33,100 +39,107 @@ confirm_overwrite() {
   [[ "$answer" =~ ^[Yy]$ ]]
 }
 
+# Symlink a skill directory (containing SKILL.md) into a destination skills dir.
+# Codex (User scope) and Claude both follow symlinked skill folders.
+link_skill() {
+  local skill_dir="${1%/}"
+  local dest_dir="$2"
+  local skill_name target
+  skill_name="$(basename "$skill_dir")"
+  target="$dest_dir/$skill_name"
+
+  if [ -L "$target" ]; then
+    rm "$target"
+  elif [ -e "$target" ]; then
+    if confirm_overwrite "$target"; then
+      rm -rf "$target"
+    else
+      echo -e "  ${YELLOW}SKIP${RESET} $skill_name"
+      return 0
+    fi
+  fi
+
+  ln -s "$skill_dir" "$target"
+  echo -e "  ${GREEN}OK${RESET}   $skill_name ${DIM}-> $skill_dir${RESET}"
+}
+
 # Claude skills (each skill is a directory with SKILL.md)
 install_claude_skills() {
   mkdir -p "$CLAUDE_SKILLS_DIR"
-
   for skill_dir in "$SCRIPT_DIR"/claude/skills/*/; do
     [ -d "$skill_dir" ] || continue
-    skill_name="$(basename "$skill_dir")"
-    target="$CLAUDE_SKILLS_DIR/$skill_name"
-
-    if [ -L "$target" ]; then
-      rm "$target"
-    elif [ -e "$target" ]; then
-      if confirm_overwrite "$target"; then
-        rm -rf "$target"
-      else
-        echo -e "  ${YELLOW}SKIP${RESET} $skill_name"
-        continue
-      fi
-    fi
-
-    ln -s "$skill_dir" "$target"
-    echo -e "  ${GREEN}OK${RESET}   $skill_name ${DIM}-> $skill_dir${RESET}"
+    link_skill "$skill_dir" "$CLAUDE_SKILLS_DIR"
   done
 }
 
-# Codex prompts (each prompt is a single .md file -> /name slash command)
-install_codex_prompts() {
-  mkdir -p "$CODEX_PROMPTS_DIR"
-
-  for prompt_file in "$SCRIPT_DIR"/codex/prompts/*.md; do
-    [ -f "$prompt_file" ] || continue
-    prompt_name="$(basename "$prompt_file")"
-    target="$CODEX_PROMPTS_DIR/$prompt_name"
-
-    if [ -L "$target" ]; then
-      rm "$target"
-    elif [ -e "$target" ]; then
-      if confirm_overwrite "$target"; then
-        rm -rf "$target"
-      else
-        echo -e "  ${YELLOW}SKIP${RESET} $prompt_name"
-        continue
-      fi
-    fi
-
-    ln -s "$prompt_file" "$target"
-    echo -e "  ${GREEN}OK${RESET}   $prompt_name ${DIM}-> $prompt_file${RESET}"
+# Codex skills (each skill is a directory with SKILL.md). Codex 0.137.0 follows
+# symlinked skill folders under $CODEX_HOME/skills (User scope), so symlink them.
+install_codex_skills() {
+  mkdir -p "$CODEX_SKILLS_DIR"
+  for skill_dir in "$SCRIPT_DIR"/codex/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    link_skill "$skill_dir" "$CODEX_SKILLS_DIR"
   done
 }
 
-# Remove skills this repo installed (symlinks pointing back into SCRIPT_DIR)
+# Remove a skill we installed: a symlink under dest_dir pointing back into SCRIPT_DIR.
+unlink_skill() {
+  local skill_name="$1"
+  local dest_dir="$2"
+  local target="$dest_dir/$skill_name"
+
+  if [ -L "$target" ]; then
+    case "$(readlink "$target")" in
+      "$SCRIPT_DIR"/*)
+        rm "$target"
+        echo -e "  ${GREEN}RM${RESET}   $skill_name"
+        ;;
+      *)
+        echo -e "  ${YELLOW}SKIP${RESET} $skill_name ${DIM}(symlink points elsewhere)${RESET}"
+        ;;
+    esac
+  else
+    echo -e "  ${DIM}MISS $skill_name (not installed)${RESET}"
+  fi
+}
+
 uninstall_claude_skills() {
   for skill_dir in "$SCRIPT_DIR"/claude/skills/*/; do
     [ -d "$skill_dir" ] || continue
-    skill_name="$(basename "$skill_dir")"
-    target="$CLAUDE_SKILLS_DIR/$skill_name"
-
-    if [ -L "$target" ]; then
-      link_dest="$(readlink "$target")"
-      case "$link_dest" in
-        "$SCRIPT_DIR"/*)
-          rm "$target"
-          echo -e "  ${GREEN}RM${RESET}   $skill_name"
-          ;;
-        *)
-          echo -e "  ${YELLOW}SKIP${RESET} $skill_name ${DIM}(symlink points elsewhere)${RESET}"
-          ;;
-      esac
-    else
-      echo -e "  ${DIM}MISS $skill_name (not installed)${RESET}"
-    fi
+    unlink_skill "$(basename "$skill_dir")" "$CLAUDE_SKILLS_DIR"
   done
 }
 
-# Remove codex prompts this repo installed (symlinks pointing back into SCRIPT_DIR)
-uninstall_codex_prompts() {
-  for prompt_file in "$SCRIPT_DIR"/codex/prompts/*.md; do
-    [ -f "$prompt_file" ] || continue
-    prompt_name="$(basename "$prompt_file")"
-    target="$CODEX_PROMPTS_DIR/$prompt_name"
+uninstall_codex_skills() {
+  for skill_dir in "$SCRIPT_DIR"/codex/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    unlink_skill "$(basename "$skill_dir")" "$CODEX_SKILLS_DIR"
+  done
+}
 
-    if [ -L "$target" ]; then
-      link_dest="$(readlink "$target")"
-      case "$link_dest" in
-        "$SCRIPT_DIR"/*)
-          rm "$target"
-          echo -e "  ${GREEN}RM${RESET}   $prompt_name"
-          ;;
-        *)
-          echo -e "  ${YELLOW}SKIP${RESET} $prompt_name ${DIM}(symlink points elsewhere)${RESET}"
-          ;;
+# Clean up installs from older versions of this script: ~/.codex/skills symlinks
+# (deprecated dir) and ~/.codex/prompts copies (dead feature, removed in v0.118.0).
+uninstall_legacy_codex() {
+  for skill_dir in "$SCRIPT_DIR"/codex/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    name="$(basename "${skill_dir%/}")"
+
+    # Deprecated ~/.codex/skills/<name> symlink pointing back into this repo.
+    local skill_target="$CODEX_LEGACY_SKILLS_DIR/$name"
+    if [ -L "$skill_target" ]; then
+      case "$(readlink "$skill_target")" in
+        "$SCRIPT_DIR"/*) rm "$skill_target"; echo -e "  ${GREEN}RM${RESET}   $name ${DIM}(legacy ~/.codex/skills)${RESET}" ;;
       esac
-    else
-      echo -e "  ${DIM}MISS $prompt_name (not installed)${RESET}"
+    fi
+
+    # Dead ~/.codex/prompts/<name>.md (symlink into repo, or stale copy).
+    local prompt_target="$CODEX_PROMPTS_DIR/$name.md"
+    if [ -L "$prompt_target" ]; then
+      case "$(readlink "$prompt_target")" in
+        "$SCRIPT_DIR"/*) rm "$prompt_target"; echo -e "  ${GREEN}RM${RESET}   $name.md ${DIM}(legacy prompt)${RESET}" ;;
+      esac
+    elif [ -f "$prompt_target" ]; then
+      rm "$prompt_target"; echo -e "  ${GREEN}RM${RESET}   $name.md ${DIM}(legacy prompt)${RESET}"
     fi
   done
 }
@@ -135,8 +148,9 @@ if $REMOVE; then
   echo -e "${BOLD}${BLUE}Removing Claude skills${RESET} from $CLAUDE_SKILLS_DIR"
   uninstall_claude_skills
   echo ""
-  echo -e "${BOLD}${BLUE}Removing Codex prompts${RESET} from $CODEX_PROMPTS_DIR"
-  uninstall_codex_prompts
+  echo -e "${BOLD}${BLUE}Removing Codex skills${RESET} from $CODEX_SKILLS_DIR"
+  uninstall_codex_skills
+  uninstall_legacy_codex
   echo ""
   echo -e "${GREEN}Done.${RESET}"
   exit 0
@@ -146,8 +160,9 @@ echo -e "${BOLD}${BLUE}Claude skills${RESET} -> $CLAUDE_SKILLS_DIR"
 install_claude_skills
 
 echo ""
-echo -e "${BOLD}${BLUE}Codex prompts${RESET} -> $CODEX_PROMPTS_DIR"
-install_codex_prompts
+echo -e "${BOLD}${BLUE}Codex skills${RESET} -> $CODEX_SKILLS_DIR"
+install_codex_skills
+uninstall_legacy_codex  # remove old ~/.codex/skills + ~/.codex/prompts installs
 
 echo ""
 echo -e "${GREEN}Done.${RESET}"
