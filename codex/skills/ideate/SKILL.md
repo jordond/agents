@@ -1,6 +1,6 @@
 ---
 name: ideate
-description: Turn a rough idea or a backlog TODO into a researched, build-ready plan and GitHub issue(s). Use when the user wants to plan, flesh out, spec, scope, design, or "ideate" a feature or task before writing code. Asks targeted clarifying questions one at a time with recommendations, researches with concrete evidence (never guesses), writes the plan, creates the issue(s), updates the Status board, and hands off to $workon. Use this — not $workon — whenever there is no written plan or issue yet, even if the user says "build" or "implement": planning and research come first.
+description: 'Turn a rough idea or a backlog TODO into a researched, build-ready plan and GitHub issue(s). Use when the user wants to plan, flesh out, spec, scope, design, or "ideate" a feature or task before writing code. Asks targeted clarifying questions one at a time with recommendations, researches with concrete evidence (never guesses), writes the plan, creates the issue(s), updates the Status board, and hands off to $workon. Use this — not $workon — whenever there is no written plan or issue yet, even if the user says "build" or "implement": planning and research come first.'
 ---
 
 # Ideate
