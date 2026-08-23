@@ -10,6 +10,33 @@ Take something fuzzy and turn it into a plan precise enough that `/workon` can e
 
 You'll do a lot of research, but the user only sees: the clarifying questions, the continuation prompt, and the final handoff. Don't narrate research as you go. Keep questions tight. Tokens spent reading the codebase are worth it; tokens spent describing your reading are not.
 
+## Model routing
+
+Subagents keep your context lean, but each one still burns tokens. Pass `model:` on every `Agent` call so the cost matches the work:
+
+| Work | Model |
+| --- | --- |
+| Locating files, listing call sites, grepping for a convention, quoting an external API's surface | `haiku` |
+| Tracing dataflow, summarizing how a subsystem hangs together, judging whether a pattern fits | `sonnet` |
+| Writing the plan — anything where a wrong judgment costs a rewrite | omit `model:` — inherits the session model |
+
+Cheaper than any model: **not spawning**. One file read, one grep, one `gh` command — do it inline.
+
+**Keep returns small.** A subagent's own tokens stay out of your context; its *return value* does not. Tell each one exactly what to return and how short — a `file:line` table, a decision list, pass/fail plus the failing output — never a narrated walkthrough or pasted file contents.
+
+## Context budget
+
+Target: keep this orchestrating context under ~150k tokens. You can't measure it directly, so act on the first proxy that trips:
+
+- The harness warns that auto-compact is near → **checkpoint now**. A deliberate handoff beats a lossy auto-summary.
+- You're about to pull in a blob — a full issue body, a raw source file, the output of a wide grep → that's the leak. Route it through a subagent instead.
+
+**Hold pointers, not payloads.** File paths, issue numbers, resolved decisions, the one-line finding — not the file contents that produced it. A subagent reads the code; you keep its conclusion.
+
+**Trim output at the source:**
+- `gh issue list --json number,title,labels` to enumerate; `gh issue view <n>` for the one issue you're actually reading.
+- Don't cat whole files to skim them — `grep -n` for the symbol, or send a subagent.
+
 ## Status issue contract
 
 One issue per repo, title `Status`, label `status`. `/ideate` promotes an item from **TODO** to **Up Next** and records the new issue number. (Full board: TODO → Up Next → In Progress → Finished — see the `where-are-we` skill.)
@@ -22,9 +49,9 @@ One issue per repo, title `Status`, label `status`. `/ideate` promotes an item f
 
 ### 2. Research with evidence — do not guess
 This is the core of a good plan. Before asking anything, build a concrete picture:
-- Find the real files, patterns, and constraints involved. Use the `Explore` agent or parallel subagents for breadth; read the actual code for the parts that matter.
+- Find the real files, patterns, and constraints involved. Fan out with parallel subagents for breadth — `haiku` for "where is X / what calls Y / does this repo already do Z", `sonnet` (or `Explore`) when the answer needs judgment about how a subsystem hangs together. Read code yourself only where a wrong assumption would break the plan — a handful of files, not a survey.
 - Confirm how similar things are already done in this repo so the plan matches existing conventions.
-- For external libraries/APIs, verify current behavior (context7 docs / web) rather than recalling it.
+- For external libraries/APIs, verify current behavior (context7 docs / web) rather than recalling it — a `haiku` subagent is enough to fetch and quote the relevant API surface.
 
 If you cannot find evidence for something the plan depends on, that's a question for the user — not a guess to paper over.
 
@@ -37,7 +64,7 @@ Don't settle for the top-level forks. Walk the whole decision tree: ask the high
 - **Resolve dependencies in order.** Decide the fork that gates the most downstream work first; let dependent decisions follow from its answer.
 
 ### 4. Checkpoint — hand off a clean-context continuation
-Once intent is clear, **stop and let the user clear context** (planning research bloats the window; writing the plan fresh is cleaner and cheaper). Give them a paste-ready continuation prompt that carries everything forward, e.g.:
+This step is mandatory, not a courtesy. Once intent is clear — or sooner, if research has already loaded up your context — **stop and let the user clear context** (planning research bloats the window; writing the plan fresh is cleaner and cheaper). Give them a paste-ready continuation prompt that carries everything forward, e.g.:
 
 ```
 /ideate continue: <target>. Decisions: <bulleted resolved answers>. Evidence: <key files/paths, conventions, constraints found>. Write the plan now.
@@ -50,6 +77,8 @@ Judge whether this is one plan or several. Split when parts are independently bu
 
 ### 6. Write the plan(s) — in subagents, parallel when split
 Dispatch a subagent per plan (in parallel if independent) to write each plan to `./scratchpad/plan-<slug>.md` using the template below. Give each subagent the evidence and decisions so it doesn't re-discover. The plan must be specific: real file paths, the approach, ordered steps, and a Workon Prompt.
+
+**No `model:` override here** — the plan is the deliverable, and a weak one costs a rewrite downstream. Have each subagent return just the file path and a two-line summary; read the file yourself if you need the detail.
 
 ### 7. Create the issue(s) and update the board
 - **Single plan:** `gh issue create --title "<title>" --body-file ./scratchpad/plan-<slug>.md --label feature`. Then move the item from TODO → **Up Next** in the Status issue with the new `#`.
