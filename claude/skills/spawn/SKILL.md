@@ -31,6 +31,23 @@ Ambiguity rules:
 
 One grep, one file read, one `gh` call, one build or test run: do it inline. Every agent pays ~55k tokens of fixed prompt before its first action, so a spawn only wins when the transcript would be long and the return can be short. If the user insists, spawn anyway and skip the lecture.
 
+## Context budget
+
+Cost is **turns × context**, so a fat agent gets more expensive every turn it lives. Size the slice so the agent finishes under **150k tokens** of context; **250k is the ceiling** and means the slice was cut wrong.
+
+- Fixed prompt is ~55k. That leaves ~95k of working room under the target. A builder that must read more than ~6 files of real size, or an analyst tracing more than one subsystem, will blow it; split the slice first.
+- Tell the agent its budget in the brief (`Budget: finish under 150k context`), so it reads the named files and stops exploring instead of reading the tree.
+- Never paste a whole issue, plan, or file dump into a brief when a section will do. Every retained token is paid on every turn.
+- If an agent reports it is near budget or its return is unfinished, do not extend it. Take what it produced, write a smaller brief for the remainder, and spawn fresh.
+
+## One agent, one task, then stop
+
+**Never reuse a finished agent.** A finished agent still holds its whole transcript, so a follow-up message to it costs the old context plus the new work. A fresh agent starts at ~55k and gets only the brief you write.
+
+- When an agent returns, stop it (`TaskStop`) if it is still resident, and carry forward only its report, not its handle.
+- Follow-up work (apply review fixes, retry a failed build, second angle on a question) is a **new spawn** with the prior result pasted in as `Context:` in the brief, trimmed to what the new task needs.
+- The only exception is an agent you named because it is mid-task and you must send it a mid-flight correction. Once it has reported, it is finished; stop it.
+
 ## Brief templates
 
 Paste the task text into the prompt; never tell the agent to go fetch it (`gh issue view`, "read the plan") — that costs thousands of retained tokens per turn. Point at the CLAUDE.md *section* it needs, not the whole file. Fill only the lines that apply; drop the rest.
@@ -47,6 +64,7 @@ Return: one-line answer + file:line table, ≤30 rows.
 Question: <one line>
 Read first: <2–4 paths or CLAUDE.md section>
 Constraints: <invariants, locked decisions, pinned versions if relevant>
+Budget: finish under 150k context; read the named paths, do not survey the tree.
 Return: ≤40 lines — answer, file:line evidence, open questions. [Write research note to <path> if asked.]
 ```
 
@@ -57,6 +75,7 @@ Owns: <2–4 files it may edit>
 Do not touch: <files>
 Read first: <paths / CLAUDE.md section>; existing helpers: <names, so it doesn't re-derive them>
 Checks: <lint + test targets>; run budget: <n> runs, then commit and report.
+Budget: finish under 150k context; if you cannot, commit what is done and report what is left.
 Return: the 40-line report from your agent definition.
 ```
 
@@ -78,10 +97,10 @@ Return: ≤8 lines.
 
 ## Dispatch rules
 
-- **Unnamed by default.** Pass `name:` only when you will message the agent again (a build owner you will hand fixes back to). A named agent costs you an extra turn per notification.
+- **Unnamed by default.** Pass `name:` only when you expect to send a mid-flight correction before the agent reports. A named agent costs you an extra turn per notification. Naming is not a licence to reuse it after it reports (see above).
 - **Parallel when independent.** Several scouts on different angles, or builders on disjoint file sets, go in one message. Builders sharing a file go in sequence or in separate worktrees.
 - **Background by default** for builder and analyst; you keep working. Scout and scribe are short; wait for them.
-- **Chain, don't merge.** Locate (`scout`) → implement (`builder`) → review (`reviewer`) → apply survivors (`scribe` or `builder`). Never ask one agent to do two of those.
+- **Chain, don't merge.** Locate (`scout`) → implement (`builder`) → review (`reviewer`) → apply survivors (`scribe` or `builder`). Never ask one agent to do two of those, and each link is a fresh agent: the builder that wrote the diff does not also apply the review fixes.
 - **Relay, don't reprocess.** The agent's return is already the user-facing report. Quote it; add a verdict or a next step only if the user needs one.
 - A project-level `.claude/agents/<name>.md` with the same name overrides the user-wide one automatically; nothing to do.
 

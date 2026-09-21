@@ -2,6 +2,7 @@
 name: where-are-we
 description: Read the GitHub "Status" issue, reconcile it against git history, and report where the project stands with concrete next steps. Use whenever the user asks "where are we", "what's the status", "what should I work on next", "catch me up", "what's left", or opens a session and wants orientation. Creates the Status issue if it doesn't exist. This skill only orients and suggests — it does not plan (use /ideate) or start implementation (use /workon). When the user names a specific issue or task to begin, prefer /workon instead.
 argument-hint: "[optional focus area]"
+disable-model-invocation: true
 ---
 
 Orient the user: read the canonical **Status** issue, make it match reality (git history), then give a tight summary plus what to do next.
