@@ -9,6 +9,7 @@ A `Status` issue (one per repo) is the source of truth: a board with four tables
 ```text
 /add-todo -> /ideate -> /workon
         \-> /where-are-we (orient / reconcile anytime)
+        \-> /spawn (delegate one task to the right agent anytime)
 ```
 
 ## Commands
@@ -20,6 +21,7 @@ A `Status` issue (one per repo) is the source of truth: a board with four tables
 | `/ideate`        | Research a TODO/idea with evidence, ask steering questions, write the plan(s) via subagents, create issue(s), update the board | `[a TODO, issue, or idea]` |
 | `/workon`        | Implement a planned issue with subagents in an isolated worktree, update the board, finish via PR or merge | `[issue number]`           |
 | `/refine`        | Refine branch changes for code quality, reusability, type safety, and clean patterns before committing |                            |
+| `/spawn`         | Route a task to the right subagent (scout/analyst/builder/reviewer/scribe) with a compact brief; auto-triggers on "spawn an agent", "launch a worker", "delegate this" | `[what to delegate]`       |
 
 Goals: autonomous work drivable from the Claude Code app, minimal token waste (terse output), and quality work free of AI anti-patterns.
 
