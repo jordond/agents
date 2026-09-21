@@ -32,6 +32,18 @@ Goals: autonomous work drivable from the Claude Code app, minimal token waste (t
 /where-are-we
 ```
 
+## Agents
+
+Five generic Claude Code subagents, installed user-wide to `~/.claude/agents/`. They read `CLAUDE.md` / `AGENTS.md` for a repo's conventions rather than hard-coding any stack. A project-level `.claude/agents/<name>.md` with the same name overrides these.
+
+| Agent      | Model   | Role                                                                                       |
+| ---------- | ------- | ------------------------------------------------------------------------------------------ |
+| `scout`    | haiku   | Read-only locator: `file:line` table for where-is / what-calls / who-owns questions        |
+| `analyst`  | sonnet  | Read-only investigator: traces subsystems, verifies package APIs, writes research notes    |
+| `builder`  | opus    | Implements one written brief in its own worktree; lint + targeted tests; ≤40-line report   |
+| `reviewer` | sonnet  | Read-only diff review: ≤15 severity-tagged lines + `merge \| fix-first \| discuss` verdict |
+| `scribe`   | sonnet  | Exact edits to ≤3 files (status rows, report assembly, JSON fields); no design judgement   |
+
 ## Install
 
 ```bash
@@ -39,7 +51,7 @@ Goals: autonomous work drivable from the Claude Code app, minimal token waste (t
 ./install.sh --rm      # uninstall (--remove also works)
 ```
 
-Symlinks Claude skills into `~/.claude/skills/` and Codex skills into `~/.agents/skills/` (both follow symlinked skill folders). Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo. The installer also cleans up leftover installs from older versions of this script (`~/.codex/skills/` symlinks and `~/.codex/prompts/` files; see below).
+Symlinks Claude skills into `~/.claude/skills/`, Claude agents into `~/.claude/agents/`, and Codex skills into `~/.agents/skills/` (all follow symlinks). Re-running is safe; existing symlinks are replaced. A non-symlink target prompts before overwrite (`--yes`/`-y` skips prompts). `--rm`/`--remove` deletes only the symlinks that point back into this repo. The installer also cleans up leftover installs from older versions of this script (`~/.codex/skills/` symlinks and `~/.codex/prompts/` files; see below).
 
 ## Codex
 
@@ -51,6 +63,7 @@ The same six commands ship as [Codex CLI](https://github.com/openai/codex) skill
 
 ```
 claude/skills/       # Claude Code skills (SKILL.md per directory)
+claude/agents/       # Claude Code subagents (<name>.md per agent)
 codex/skills/        # Codex CLI skills (SKILL.md per directory)
 install.sh           # Symlink installer / uninstaller
 ```

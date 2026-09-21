@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+CLAUDE_AGENTS_DIR="$HOME/.claude/agents"
 # Non-deprecated Codex user skills location (loader.rs registers $HOME/.agents/skills).
 CODEX_SKILLS_DIR="$HOME/.agents/skills"
 # Legacy targets cleaned up by older versions of this script:
@@ -63,6 +64,38 @@ link_skill() {
   echo -e "  ${GREEN}OK${RESET}   $skill_name ${DIM}-> $skill_dir${RESET}"
 }
 
+# Symlink a single agent definition file (<name>.md) into a destination agents dir.
+link_agent() {
+  local agent_file="$1"
+  local dest_dir="$2"
+  local agent_name target
+  agent_name="$(basename "$agent_file")"
+  target="$dest_dir/$agent_name"
+
+  if [ -L "$target" ]; then
+    rm "$target"
+  elif [ -e "$target" ]; then
+    if confirm_overwrite "$target"; then
+      rm -rf "$target"
+    else
+      echo -e "  ${YELLOW}SKIP${RESET} $agent_name"
+      return 0
+    fi
+  fi
+
+  ln -s "$agent_file" "$target"
+  echo -e "  ${GREEN}OK${RESET}   ${agent_name%.md} ${DIM}-> $agent_file${RESET}"
+}
+
+# Claude agents (each agent is a single <name>.md file with YAML frontmatter)
+install_claude_agents() {
+  mkdir -p "$CLAUDE_AGENTS_DIR"
+  for agent_file in "$SCRIPT_DIR"/claude/agents/*.md; do
+    [ -f "$agent_file" ] || continue
+    link_agent "$agent_file" "$CLAUDE_AGENTS_DIR"
+  done
+}
+
 # Claude skills (each skill is a directory with SKILL.md)
 install_claude_skills() {
   mkdir -p "$CLAUDE_SKILLS_DIR"
@@ -101,6 +134,13 @@ unlink_skill() {
   else
     echo -e "  ${DIM}MISS $skill_name (not installed)${RESET}"
   fi
+}
+
+uninstall_claude_agents() {
+  for agent_file in "$SCRIPT_DIR"/claude/agents/*.md; do
+    [ -f "$agent_file" ] || continue
+    unlink_skill "$(basename "$agent_file")" "$CLAUDE_AGENTS_DIR"
+  done
 }
 
 uninstall_claude_skills() {
@@ -148,6 +188,9 @@ if $REMOVE; then
   echo -e "${BOLD}${BLUE}Removing Claude skills${RESET} from $CLAUDE_SKILLS_DIR"
   uninstall_claude_skills
   echo ""
+  echo -e "${BOLD}${BLUE}Removing Claude agents${RESET} from $CLAUDE_AGENTS_DIR"
+  uninstall_claude_agents
+  echo ""
   echo -e "${BOLD}${BLUE}Removing Codex skills${RESET} from $CODEX_SKILLS_DIR"
   uninstall_codex_skills
   uninstall_legacy_codex
@@ -158,6 +201,10 @@ fi
 
 echo -e "${BOLD}${BLUE}Claude skills${RESET} -> $CLAUDE_SKILLS_DIR"
 install_claude_skills
+
+echo ""
+echo -e "${BOLD}${BLUE}Claude agents${RESET} -> $CLAUDE_AGENTS_DIR"
+install_claude_agents
 
 echo ""
 echo -e "${BOLD}${BLUE}Codex skills${RESET} -> $CODEX_SKILLS_DIR"
