@@ -76,6 +76,7 @@ Owns: <2–4 files it may edit>
 Do not touch: <files>
 Read first: <paths / CLAUDE.md section>; existing helpers: <names, so it doesn't re-derive them>
 Verified at: <sha>. Every path, type and signature named above was checked against it, so do not re-survey.
+Base: <sha> on <integration branch>. If your worktree HEAD is not <sha>, run `git checkout -B <slice-branch> <sha>` before editing.
 Checks: <lint + tests of the touched modules only; the orchestrator gates the batch>; run budget: <n> runs, then commit and report.
 Budget: finish under 250k context; if you cannot, commit what is done and report what is left.
 Return: the 40-line report from your agent definition.
@@ -103,7 +104,7 @@ Return: ≤8 lines.
 - **Parallel by default.** Several scouts on different angles, or builders on disjoint file sets (up to four at a time), go in one message. Only builders sharing a file go in sequence.
 - **Background by default** for builder and analyst; you keep working. Scout and scribe are short; wait for them.
 - **Verify the brief, not the builder.** Before dispatch, check the brief's paths, types and signatures against the tip yourself and write the SHA into it. No analyst pre-draft: an extra hop per slice costs more than the grep it saves.
-- **Review per batch, not per slice.** Merge each green slice as it lands. After every three or four merges run one gate (build, tests, lint, e2e where the project has them) and one `reviewer` on the whole range. A red gate is bisected over the first-parent merges. Fix slices are only for real bugs, each with a failing test first; nits go on one polish list, done in a single slice at the milestone end. On builder v2, per-slice review and fix hops turned 117 merges into 51 follow-up slices and about 60 fix slices.
+- **Review per batch, not per slice.** Merge each green slice into the integration branch (the branch the briefs' `Base:` names; under `/workon`, the feature branch) as it lands. After every three or four merges run one gate (build, tests, lint, e2e where the project has them) and one `reviewer` on the whole range. A red gate is bisected over the first-parent merges. Fix slices are only for real bugs, each with a failing test first; nits go on one polish list, done in a single slice at the milestone end. On builder v2, per-slice review and fix hops turned 117 merges into 51 follow-up slices and about 60 fix slices.
 - **Relay, don't reprocess.** The agent's return is already the user-facing report. Quote it; add a verdict or a next step only if the user needs one.
 - A project-level `.claude/agents/<name>.md` with the same name overrides the user-wide one automatically; nothing to do.
 

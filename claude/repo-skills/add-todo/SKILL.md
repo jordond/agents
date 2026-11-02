@@ -27,14 +27,16 @@ One issue per repo, title exactly `Status`, label `status`, single source of tru
 
 1. **Get the content.** If `$ARGUMENTS` is non-empty, use it. Otherwise ask once: "What do you want to capture?" — then stop and wait.
 
-2. **Condense.** Distill the description into a single clear task line (imperative, ≤ ~12 words). Keep any concrete specifics (file, constraint, deadline) in the Notes cell rather than padding the task line. Don't invent scope the user didn't state.
+2. **Check it belongs.** TODO holds future features and bug fixes only. Device passes, verification, sign-offs, release or operator steps are not TODOs: tell the user so and don't add the row.
 
-3. **Find the Status issue.**
+3. **Condense.** Distill the description into a single clear task line (imperative, ≤ ~12 words). Keep any concrete specifics (file, constraint, deadline) in the Notes cell rather than padding the task line. Don't invent scope the user didn't state.
+
+4. **Find the Status issue.**
    ```bash
    gh issue list --search "Status in:title" --state open --json number,title --jq '.[] | select(.title=="Status") | .number'
    ```
    If it doesn't exist, create it the same way `/where-are-we` does (label `status`, the four-table body) with this TODO as the first row.
 
-4. **Append the row.** Read the body (`gh issue view <n> --json body`), insert the new row at the end of the TODO table, write back: `gh issue edit <n> --body-file <updated>`. Don't disturb other tables or rows.
+5. **Append the row.** Read the body (`gh issue view <n> --json body`), insert the new row at the end of the TODO table, write back: `gh issue edit <n> --body-file <updated>`. Don't disturb other tables or rows.
 
-5. **Confirm** in one line, e.g. `Added to TODO: "Cache forecast API responses" (#Status)`.
+6. **Confirm** in one line, e.g. `Added to TODO: "Cache forecast API responses" (#Status)`.

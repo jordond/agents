@@ -15,7 +15,15 @@ Tokens are the budget. Report only what the user needs to act: a short status li
 
 ## Status issue contract
 
-One issue per repo, title exactly `Status`, label `status`. It is the single source of truth all agents read and edit. Body is four markdown tables in this fixed order:
+One issue per repo, title exactly `Status`, label `status`. It is the single source of truth all agents read and edit.
+
+Shared rules for every skill that touches the board:
+- **Lookup:** `gh issue list --search "Status in:title" --state open --json number,title --jq '.[] | select(.title=="Status") | .number'`
+- **Missing board:** create it as in Procedure step 1.
+- **Plan marker:** `/ideate` puts the label `planned` on each plan issue it creates or rewrites (the master only, when split; sub-issues carry `Part of #<master>` instead). Create it idempotently: `gh label create planned --color 0E8A16 --description "Has an /ideate plan" 2>/dev/null || true`.
+- **Writes:** fetch the body immediately before editing it, and write the whole body back in the same step. Never edit from a copy read earlier in the session; another skill may have written since.
+
+Body is four markdown tables in this fixed order:
 
 ```markdown
 # Status
@@ -43,6 +51,8 @@ _Single source of truth. Agents read + update this issue. Last reconciled: <YYYY
 | #12 | <task> | #34 |
 ```
 
+TODO holds future features and bug fixes only, never device passes, verification, sign-offs or release/operator steps.
+
 Lifecycle: a raw idea lands in **TODO** → `/ideate` researches it, creates an issue, moves it to **Up Next** → `/workon` moves it to **In Progress** (branch/worktree) → on merge it moves to **Finished**. Rows carry the issue `#` so everything links.
 
 ## Procedure
@@ -67,12 +77,13 @@ Lifecycle: a raw idea lands in **TODO** → `/ideate` researches it, creates an 
 3. **Reconcile** the Status body against reality. Apply only changes you have evidence for:
    - In Progress row whose branch was merged (matching merged PR `headRefName`) → move to **Finished** with the PR `#`.
    - In Progress row whose worktree no longer exists and branch is gone → it stalled; keep it but flag in the summary.
-   - Open issue with a plan label not on the board → add to **Up Next**.
+   - Open issue labelled `planned` not on the board → add to **Up Next**. Skip issues whose body starts with `Part of #` (sub-issues are tracked in their master's checklist).
    - Closed/merged issue still in TODO/Up Next/In Progress → move to **Finished**.
+   - TODO row that is a device pass, verification, sign-off or ops step → remove it and list it in the summary.
    - Stamp the `Last reconciled:` line with today's date and `git rev-parse --short HEAD`.
    If nothing needs changing, skip the write.
 
-4. **Write back** only if changed: `gh issue edit <n> --body-file <updated>`. Edit the whole body; preserve rows you have no evidence to touch.
+4. **Write back** only if changed: re-fetch the body, re-apply your changes to it, then `gh issue edit <n> --body-file <updated>`. Edit the whole body; preserve rows you have no evidence to touch.
 
 5. **Summarize.** Format:
    ```
